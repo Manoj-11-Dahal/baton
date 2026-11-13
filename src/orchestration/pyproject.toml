@@ -1,0 +1,42 @@
+[project]
+name = "orchestration"
+version = "1.0.0"
+description = "Production-ready Leader–Sub-Agent Multi-LLM Model Orchestration System"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "litellm>=1.0.0",
+    "langgraph>=1.0.0",
+    "langchain-core>=0.1.0",
+    "psycopg2-binary>=2.9.0",
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.10.0",
+    "redis>=5.0.0",
+    "qdrant-client>=1.0.0",
+    "httpx>=0.25.0",
+    "tenacity>=8.0.0",
+    "python-dotenv>=1.0.0",
+    "python-multipart>=0.0.6",
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp>=1.20.0",
+    "opentelemetry-instrumentation-fastapi>=0.40b0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["src/tests"]

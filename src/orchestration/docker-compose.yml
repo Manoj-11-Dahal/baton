@@ -1,0 +1,94 @@
+# ---------------------------------------------------------------
+# Leader–Sub-Agent Multi-LLM Orchestration System — Docker Compose
+# ---------------------------------------------------------------
+version: "3.9"
+
+services:
+  # ---- Application API ----
+  orchestration:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: orchestration-api
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    depends_on:
+      - postgres
+      - redis
+      - qdrant
+    restart: unless-stopped
+    command: sh -c "alembic upgrade head && uvicorn orchestration.api.app:app --host 0.0.0.0 --port ${PORT:-8000}"
+
+  # ---- PostgreSQL (Central Model Registry + audit logs) ----
+  postgres:
+    image: postgres:16
+    container_name: orchestration-postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME:-orchestration}
+      POSTGRES_USER: ${DB_USER:-orch_user}
+      POSTGRES_PASSWORD: ${DB_PASS:-orch_pass}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-orch_user} -d ${DB_NAME:-orchestration}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- Redis (caching, rate limiting, shared task context) ----
+  redis:
+    image: redis:7-alpine
+    container_name: orchestration-redis
+    env_file:
+      - .env
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --save 60 1 --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- Qdrant (vector store for research sub-agent embeddings) ----
+  qdrant:
+    image: qdrant/qdrant:1.12
+    container_name: orchestration-qdrant
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+    environment:
+      QDRANT__API_KEY: ${QDRANT_API_KEY:-}
+    volumes:
+      - qdrant_data:/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/collections"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ---- OpenTelemetry Collector (optional observability backend) ----
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.110.0
+    container_name: orchestration-otel
+    command: ["--config", "/etc/otel-collector-config.yaml"]
+    ports:
+      - "4318:4318" # OTLP HTTP
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:

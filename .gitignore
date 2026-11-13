@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+out/
+release/
+
+# Built artifacts
+*.exe
+*.AppImage
+*.deb
+*.7z
+*.zip
+.icon-ico/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
